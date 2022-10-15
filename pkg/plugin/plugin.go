@@ -1,32 +1,113 @@
 package plugin
 
 import (
+	"bufio"
+	"context"
 	"fmt"
+	"io"
+	"os"
+	"strings"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"cloud.google.com/go/logging"
+	"github.com/fatih/color"
+
 	"k8s.io/cli-runtime/pkg/genericclioptions"
-	"k8s.io/client-go/kubernetes"
 )
 
-func RunPlugin(configFlags *genericclioptions.ConfigFlags, outputCh chan string) error {
-	config, err := configFlags.ToRESTConfig()
+type resource struct {
+	Type ResourceType
+	Name string
+}
+
+type ResourceType string
+
+const (
+	Deployment ResourceType = "Deployment"
+	CronJob    ResourceType = "CronJob"
+	Job        ResourceType = "Job"
+	Pod        ResourceType = "Pod"
+)
+
+func RunPlugin(configFlags *genericclioptions.ConfigFlags, args []string) error {
+	ctx := context.Background()
+
+	logger, err := NewGoogleCloudLogger(configFlags, args)
 	if err != nil {
-		return fmt.Errorf("failed to read kubeconfig: %w", err)
+		return err
 	}
 
-	clientset, err := kubernetes.NewForConfig(config)
-	if err != nil {
-		return fmt.Errorf("failed to create clientset: %w", err)
-	}
+	ch := make(chan *logging.Entry, 100)
+	go logger.Gather(ctx, ch)
 
-	namespaces, err := clientset.CoreV1().Namespaces().List(metav1.ListOptions{})
-	if err != nil {
-		return fmt.Errorf("failed to list namespaces: %w", err)
-	}
+	w := bufio.NewWriterSize(os.Stdout, 8192)
+	defer w.Flush()
 
-	for _, namespace := range namespaces.Items {
-		outputCh <- fmt.Sprintf("Namespace %s", namespace.Name)
+	for e := range ch {
+		var err error
+		switch e.Severity {
+		case logging.Error:
+			_, err = color.New(color.FgRed).Fprintln(w, e.Payload)
+		case logging.Warning:
+			_, err = color.New(color.FgYellow).Fprintln(w, e.Payload)
+		default:
+			_, err = w.WriteString(fmt.Sprintf("%s\n", e.Payload))
+		}
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
+}
+
+func getResources(args []string) ([]resource, error) {
+	args = separateArgs(args)
+	if len(args)%2 != 0 {
+		return nil, fmt.Errorf("args should be even")
+	}
+
+	result := make([]resource, 0, len(args)/2)
+	for i := 0; i < len(args); i += 2 {
+		resourceType, err := getResourceType(args[i])
+		if err != nil {
+			return nil, err
+		}
+		result = append(result, resource{
+			Type: resourceType,
+			Name: args[i+1],
+		})
+	}
+
+	return result, nil
+}
+
+func separateArgs(args []string) []string {
+	result := make([]string, 0, len(args))
+	for _, a := range args {
+		result = append(result, strings.Split(a, "/")...)
+	}
+	return result
+}
+
+func getResourceType(s string) (ResourceType, error) {
+	switch strings.ToLower(s) {
+	case "deployments", "deployment", "deploy":
+		return Deployment, nil
+	case "cronjobs", "cronjob", "cj":
+		return CronJob, nil
+	case "jobs", "job":
+		return Job, nil
+	case "pods", "pod", "po":
+		return Pod, nil
+	default:
+		return "", fmt.Errorf(`resource type "%s" is not supported`, s)
+	}
+}
+
+type nullWriter struct {
+	io.Writer
+}
+
+func (n *nullWriter) Write(p []byte) (int, error) {
+	return len(p), nil
 }
