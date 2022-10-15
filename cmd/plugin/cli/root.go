@@ -16,9 +16,22 @@ var KubernetesConfigFlags *genericclioptions.ConfigFlags
 
 func RootCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:           "glogs",
-		Short:         "",
-		Long:          `.`,
+		Use:   "glogs",
+		Short: "Print the logs for all namespace resource or specified resource.",
+		Long:  `Print the logs for all namespace resource or specified resource. You should set kubectl context. https://cloud.google.com/kubernetes-engine/docs/how-to/cluster-access-for-kubectl#view_the_current_context_for_kubectl`,
+		Example: `  # Return logs in the namespaces
+  kubectl glogs
+
+  # Return logs of the specified CronJob
+  kubectl glogs cronjob nginx
+  kubectl glogs cj nginx
+
+  # Return logs of the specified Deployment
+  kubectl glogs deployment nginx
+  kubectl glogs deploy nginx
+
+  # Return logs of the multiple resources
+  kubectl glogs deploy/nginx pods/item`,
 		SilenceErrors: true,
 		SilenceUsage:  true,
 		PreRun: func(cmd *cobra.Command, args []string) {
