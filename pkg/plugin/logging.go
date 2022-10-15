@@ -27,11 +27,11 @@ type GoogleCloudLogger struct {
 	clientset *kubernetes.Clientset
 	config    *LogConfig
 
-	duration time.Duration
+	configFlags *ConfigFlags
 }
 
-func NewGoogleCloudLogger(configFlags *genericclioptions.ConfigFlags, duration time.Duration, args []string) (*GoogleCloudLogger, error) {
-	config, err := buildLogConfig(configFlags)
+func NewGoogleCloudLogger(configFlags *ConfigFlags, args []string) (*GoogleCloudLogger, error) {
+	config, err := buildLogConfig(configFlags.Kubernetes)
 	if err != nil {
 		return nil, err
 	}
@@ -41,7 +41,7 @@ func NewGoogleCloudLogger(configFlags *genericclioptions.ConfigFlags, duration t
 		return nil, err
 	}
 
-	restConfig, err := configFlags.ToRESTConfig()
+	restConfig, err := configFlags.Kubernetes.ToRESTConfig()
 	if err != nil {
 		return nil, err
 	}
@@ -52,9 +52,9 @@ func NewGoogleCloudLogger(configFlags *genericclioptions.ConfigFlags, duration t
 	}
 
 	return &GoogleCloudLogger{
-		clientset: clientset,
-		config:    config,
-		duration:  duration,
+		clientset:   clientset,
+		config:      config,
+		configFlags: configFlags,
 	}, nil
 }
 
@@ -64,7 +64,7 @@ func buildLogConfig(configFlags *genericclioptions.ConfigFlags) (*LogConfig, err
 		return nil, err
 	}
 
-	projectID, location, clusterName, ok := extractGKEInfo(config)
+	projectID, location, clusterName, ok := extractGKEInfo(config, configFlags.Context)
 	if !ok {
 		return nil, fmt.Errorf("Failed to extract gke info")
 	}
@@ -79,8 +79,12 @@ func buildLogConfig(configFlags *genericclioptions.ConfigFlags) (*LogConfig, err
 	}, nil
 }
 
-func extractGKEInfo(config clientcmdapi.Config) (projectID, location, cluster string, ok bool) {
-	clusterName := config.Contexts[config.CurrentContext].Cluster
+func extractGKEInfo(config clientcmdapi.Config, context *string) (projectID, location, cluster string, ok bool) {
+	targetContext := config.CurrentContext
+	if context != nil && *context != "" {
+		targetContext = *context
+	}
+	clusterName := config.Contexts[targetContext].Cluster
 
 	// clusterName might be `gke_${projectID}_${location}_${clusterName}`
 	splitted := strings.Split(clusterName, "_")
@@ -95,7 +99,12 @@ func extractNamespace(configFlags *genericclioptions.ConfigFlags, config clientc
 	if configFlags.Namespace != nil && *configFlags.Namespace != "" {
 		return *configFlags.Namespace
 	}
-	return config.Contexts[config.CurrentContext].Namespace
+
+	targetContext := config.CurrentContext
+	if configFlags.Context != nil && *configFlags.Context != "" {
+		targetContext = *configFlags.Context
+	}
+	return config.Contexts[targetContext].Namespace
 }
 
 func (g *GoogleCloudLogger) Gather(ctx context.Context, entryChan chan<- *logging.Entry) error {
@@ -105,22 +114,9 @@ func (g *GoogleCloudLogger) Gather(ctx context.Context, entryChan chan<- *loggin
 	}
 	defer client.Close()
 
-	// TODO: editable from args
-	defaultTimestamp := time.Now().Add(-g.duration)
-
-	filter := fmt.Sprintf(`resource.type = "k8s_container"
-resource.labels.project_id="%s"
-resource.labels.location="%s"
-resource.labels.cluster_name="%s"
-resource.labels.namespace_name="%s"
-timestamp >= "%s"`, g.config.ProjectID, g.config.Location, g.config.Cluster, g.config.Namespace, defaultTimestamp.Format(time.RFC3339))
-
-	resourceFilter, err := g.filterResources()
+	filter, err := g.buildFilter()
 	if err != nil {
 		return err
-	}
-	if resourceFilter != "" {
-		filter += "\n" + resourceFilter
 	}
 
 	iter := client.Entries(ctx, logadmin.Filter(filter))
@@ -137,6 +133,30 @@ timestamp >= "%s"`, g.config.ProjectID, g.config.Location, g.config.Cluster, g.c
 
 	close(entryChan)
 	return nil
+}
+
+func (g *GoogleCloudLogger) buildFilter() (string, error) {
+	defaultTimestamp := time.Now().Add(-g.configFlags.Duration)
+	filter := fmt.Sprintf(`resource.type = "k8s_container"
+resource.labels.project_id="%s"
+resource.labels.location="%s"
+resource.labels.cluster_name="%s"
+resource.labels.namespace_name="%s"
+timestamp >= "%s"`, g.config.ProjectID, g.config.Location, g.config.Cluster, g.config.Namespace, defaultTimestamp.Format(time.RFC3339))
+
+	resourceFilter, err := g.filterResources()
+	if err != nil {
+		return "", err
+	}
+	if resourceFilter != "" {
+		filter += "\n" + resourceFilter
+	}
+
+	if g.configFlags.Filter != "" {
+		filter += "\n" + g.configFlags.Filter
+	}
+
+	return filter, nil
 }
 
 func (g *GoogleCloudLogger) filterResources() (string, error) {
