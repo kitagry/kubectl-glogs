@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 	"strings"
+	"time"
 
 	"cloud.google.com/go/logging"
 	"github.com/fatih/color"
@@ -28,10 +29,10 @@ const (
 	Pod        ResourceType = "Pod"
 )
 
-func RunPlugin(configFlags *genericclioptions.ConfigFlags, args []string) error {
+func RunPlugin(configFlags *genericclioptions.ConfigFlags, duration time.Duration, args []string) error {
 	ctx := context.Background()
 
-	logger, err := NewGoogleCloudLogger(configFlags, args)
+	logger, err := NewGoogleCloudLogger(configFlags, duration, args)
 	if err != nil {
 		return err
 	}

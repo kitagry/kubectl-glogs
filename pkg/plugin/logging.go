@@ -26,9 +26,11 @@ type LogConfig struct {
 type GoogleCloudLogger struct {
 	clientset *kubernetes.Clientset
 	config    *LogConfig
+
+	duration time.Duration
 }
 
-func NewGoogleCloudLogger(configFlags *genericclioptions.ConfigFlags, args []string) (*GoogleCloudLogger, error) {
+func NewGoogleCloudLogger(configFlags *genericclioptions.ConfigFlags, duration time.Duration, args []string) (*GoogleCloudLogger, error) {
 	config, err := buildLogConfig(configFlags)
 	if err != nil {
 		return nil, err
@@ -52,6 +54,7 @@ func NewGoogleCloudLogger(configFlags *genericclioptions.ConfigFlags, args []str
 	return &GoogleCloudLogger{
 		clientset: clientset,
 		config:    config,
+		duration:  duration,
 	}, nil
 }
 
@@ -103,7 +106,7 @@ func (g *GoogleCloudLogger) Gather(ctx context.Context, entryChan chan<- *loggin
 	defer client.Close()
 
 	// TODO: editable from args
-	defaultTimestamp := time.Now().Add(-3 * time.Hour)
+	defaultTimestamp := time.Now().Add(-g.duration)
 
 	filter := fmt.Sprintf(`resource.type = "k8s_container"
 resource.labels.project_id="%s"

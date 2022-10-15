@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/kitagry/kubectl-glogs/pkg/plugin"
 	"github.com/spf13/cobra"
@@ -31,14 +32,22 @@ func RootCmd() *cobra.Command {
   kubectl glogs deploy nginx
 
   # Return logs of the multiple resources
-  kubectl glogs deploy/nginx pods/item`,
+  kubectl glogs deploy/nginx pods/item
+
+  # Return logs in 2 hours. (default 30m)
+  kubectl glogs --duration 2h`,
 		SilenceErrors: true,
 		SilenceUsage:  true,
 		PreRun: func(cmd *cobra.Command, args []string) {
 			viper.BindPFlags(cmd.Flags())
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if err := plugin.RunPlugin(KubernetesConfigFlags, args); err != nil {
+			duration, err := cmd.Flags().GetDuration("duration")
+			if err != nil {
+				return err
+			}
+
+			if err := plugin.RunPlugin(KubernetesConfigFlags, duration, args); err != nil {
 				return errors.Unwrap(err)
 			}
 
@@ -50,6 +59,7 @@ func RootCmd() *cobra.Command {
 
 	KubernetesConfigFlags = genericclioptions.NewConfigFlags(false)
 	KubernetesConfigFlags.AddFlags(cmd.Flags())
+	cmd.Flags().Duration("duration", 30*time.Minute, "log time duration")
 
 	viper.SetEnvKeyReplacer(strings.NewReplacer("-", "_"))
 	return cmd
