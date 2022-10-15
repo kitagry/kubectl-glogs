@@ -39,7 +39,7 @@ func RunPlugin(configFlags *genericclioptions.ConfigFlags, args []string) error 
 	ch := make(chan *logging.Entry, 100)
 	go logger.Gather(ctx, ch)
 
-	w := bufio.NewWriterSize(os.Stdout, 8192)
+	w := bufio.NewWriterSize(os.Stdout, 1<<15)
 	defer w.Flush()
 
 	for e := range ch {

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 
 	"cloud.google.com/go/logging"
 	"cloud.google.com/go/logging/logadmin"
@@ -101,11 +102,15 @@ func (g *GoogleCloudLogger) Gather(ctx context.Context, entryChan chan<- *loggin
 	}
 	defer client.Close()
 
+	// TODO: editable from args
+	defaultTimestamp := time.Now().Add(-3 * time.Hour)
+
 	filter := fmt.Sprintf(`resource.type = "k8s_container"
 resource.labels.project_id="%s"
 resource.labels.location="%s"
 resource.labels.cluster_name="%s"
-resource.labels.namespace_name="%s"`, g.config.ProjectID, g.config.Location, g.config.Cluster, g.config.Namespace)
+resource.labels.namespace_name="%s"
+timestamp >= "%s"`, g.config.ProjectID, g.config.Location, g.config.Cluster, g.config.Namespace, defaultTimestamp.Format(time.RFC3339))
 
 	resourceFilter, err := g.filterResources()
 	if err != nil {
@@ -127,6 +132,7 @@ resource.labels.namespace_name="%s"`, g.config.ProjectID, g.config.Location, g.c
 		entryChan <- entry
 	}
 
+	close(entryChan)
 	return nil
 }
 
