@@ -7,12 +7,9 @@ import (
 	"io"
 	"os"
 	"strings"
-	"time"
 
 	"cloud.google.com/go/logging"
 	"github.com/fatih/color"
-
-	"k8s.io/cli-runtime/pkg/genericclioptions"
 )
 
 type resource struct {
@@ -29,10 +26,10 @@ const (
 	Pod        ResourceType = "Pod"
 )
 
-func RunPlugin(configFlags *genericclioptions.ConfigFlags, duration time.Duration, args []string) error {
+func RunPlugin(configFlags *ConfigFlags, args []string) error {
 	ctx := context.Background()
 
-	logger, err := NewGoogleCloudLogger(configFlags, duration, args)
+	logger, err := NewGoogleCloudLogger(configFlags, args)
 	if err != nil {
 		return err
 	}

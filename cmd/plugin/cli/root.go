@@ -5,15 +5,13 @@ import (
 	"fmt"
 	"os"
 	"strings"
-	"time"
 
 	"github.com/kitagry/kubectl-glogs/pkg/plugin"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"k8s.io/cli-runtime/pkg/genericclioptions"
 )
 
-var KubernetesConfigFlags *genericclioptions.ConfigFlags
+var ConfigFlags *plugin.ConfigFlags
 
 func RootCmd() *cobra.Command {
 	cmd := &cobra.Command{
@@ -35,19 +33,17 @@ func RootCmd() *cobra.Command {
   kubectl glogs deploy/nginx pods/item
 
   # Return logs in 2 hours. (default 30m)
-  kubectl glogs --duration 2h`,
+  kubectl glogs --duration 2h
+
+  # Return logs with filter
+  kubectl glogs --filter 'severity = "ERROR"'`,
 		SilenceErrors: true,
 		SilenceUsage:  true,
 		PreRun: func(cmd *cobra.Command, args []string) {
 			viper.BindPFlags(cmd.Flags())
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			duration, err := cmd.Flags().GetDuration("duration")
-			if err != nil {
-				return err
-			}
-
-			if err := plugin.RunPlugin(KubernetesConfigFlags, duration, args); err != nil {
+			if err := plugin.RunPlugin(ConfigFlags, args); err != nil {
 				return errors.Unwrap(err)
 			}
 
@@ -57,9 +53,8 @@ func RootCmd() *cobra.Command {
 
 	cobra.OnInitialize(initConfig)
 
-	KubernetesConfigFlags = genericclioptions.NewConfigFlags(false)
-	KubernetesConfigFlags.AddFlags(cmd.Flags())
-	cmd.Flags().Duration("duration", 30*time.Minute, "log time duration")
+	ConfigFlags = plugin.NewConfigFlags()
+	ConfigFlags.AddFlags(cmd.Flags())
 
 	viper.SetEnvKeyReplacer(strings.NewReplacer("-", "_"))
 	return cmd
