@@ -151,23 +151,11 @@ func (g *GoogleCloudLogger) filterResources() (string, error) {
 			}
 			results = append(results, filter)
 		case CronJob:
-			filter, err := g.filterCronJobs(r)
-			if err != nil {
-				return "", err
-			}
-			results = append(results, filter)
+			results = append(results, g.filterCronJobs(r))
 		case Job:
-			filter, err := g.filterJobs(r)
-			if err != nil {
-				return "", err
-			}
-			results = append(results, filter)
+			results = append(results, g.filterJobs(r))
 		case Pod:
-			filter, err := g.filterPods(r)
-			if err != nil {
-				return "", err
-			}
-			results = append(results, filter)
+			results = append(results, g.filterPods(r))
 		}
 	}
 	return fmt.Sprintf("(%s)", strings.Join(results, " OR ")), nil
@@ -190,29 +178,14 @@ func (g *GoogleCloudLogger) filterDeployments(r resource) (string, error) {
 	return "", fmt.Errorf("deployment doesn't have selector")
 }
 
-func (g *GoogleCloudLogger) filterCronJobs(r resource) (string, error) {
-	cronjob, err := g.clientset.BatchV1beta1().CronJobs(g.config.Namespace).Get(r.Name, v1.GetOptions{})
-	if err != nil {
-		return "", fmt.Errorf("failed to get deployment: %w", err)
-	}
-
-	return fmt.Sprintf(`labels.k8s-pod/job-name:"%s-"`, cronjob.ObjectMeta.Name), nil
+func (g *GoogleCloudLogger) filterCronJobs(r resource) string {
+	return fmt.Sprintf(`labels.k8s-pod/job-name:"%s-"`, r.Name)
 }
 
-func (g *GoogleCloudLogger) filterJobs(r resource) (string, error) {
-	job, err := g.clientset.BatchV1().Jobs(g.config.Namespace).Get(r.Name, v1.GetOptions{})
-	if err != nil {
-		return "", fmt.Errorf("failed to get deployment: %w", err)
-	}
-
-	return fmt.Sprintf(`resource.labels.pod_name:"%s-"`, job.ObjectMeta.Name), nil
+func (g *GoogleCloudLogger) filterJobs(r resource) string {
+	return fmt.Sprintf(`resource.labels.pod_name:"%s-"`, r.Name)
 }
 
-func (g *GoogleCloudLogger) filterPods(r resource) (string, error) {
-	pod, err := g.clientset.CoreV1().Pods(g.config.Namespace).Get(r.Name, v1.GetOptions{})
-	if err != nil {
-		return "", fmt.Errorf("failed to get deployment: %w", err)
-	}
-
-	return fmt.Sprintf(`resource.labels.pod_name="%s"`, pod.ObjectMeta.Name), nil
+func (g *GoogleCloudLogger) filterPods(r resource) string {
+	return fmt.Sprintf(`resource.labels.pod_name="%s"`, r.Name)
 }
