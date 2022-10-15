@@ -1,10 +1,10 @@
-project_name: {{ .PluginName }}
+project_name: glogs
 release:
   github:
-    owner: {{ .Owner }}
-    name: {{ .Repo }}
+    owner: kitagry
+    name: kubectl-glogs
 builds:
-  - id: {{ .PluginName }}
+  - id: glogs
     goos:
     - linux
     - windows
@@ -17,12 +17,12 @@ builds:
       - GO111MODULE=on
     main: cmd/plugin/main.go
     ldflags: -s -w
-      -X github.com/{{ .Owner }}/{{ .Repo }}/pkg/version.version=
+      -X github.com/kitagry/kubectl-glogs/pkg/version.version=
 archives:
-  - id: {{ .PluginName }}
+  - id: glogs
     builds:
-    - {{ .PluginName }}
-    name_template: {{ `"{{ .ProjectName }}_{{ .Os }}_{{ .Arch }}"` }}
+    - glogs
+    name_template: "{{ .ProjectName }}_{{ .Os }}_{{ .Arch }}"
     format_overrides:
     - goos: windows
       format: zip
