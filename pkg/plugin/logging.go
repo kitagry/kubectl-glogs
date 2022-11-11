@@ -179,6 +179,10 @@ func (g *GoogleCloudLogger) filterResources() (string, error) {
 			results = append(results, g.filterJobs(r))
 		case Pod:
 			results = append(results, g.filterPods(r))
+		case ArgoWorkflow:
+			results = append(results, g.filterArgoWorkflows(r))
+		case ArgoCronWorkflow:
+			results = append(results, g.filterArgoCronWorkflows(r))
 		}
 	}
 	return fmt.Sprintf("(%s)", strings.Join(results, " OR ")), nil
@@ -211,4 +215,12 @@ func (g *GoogleCloudLogger) filterJobs(r resource) string {
 
 func (g *GoogleCloudLogger) filterPods(r resource) string {
 	return fmt.Sprintf(`resource.labels.pod_name="%s"`, r.Name)
+}
+
+func (g *GoogleCloudLogger) filterArgoWorkflows(r resource) string {
+	return fmt.Sprintf(`labels.k8s-pod/workflows_argoproj_io/workflow="%s"`, r.Name)
+}
+
+func (g *GoogleCloudLogger) filterArgoCronWorkflows(r resource) string {
+	return fmt.Sprintf(`labels.k8s-pod/workflows_argoproj_io/workflow:"%s-"`, r.Name)
 }

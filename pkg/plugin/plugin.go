@@ -20,10 +20,12 @@ type resource struct {
 type ResourceType string
 
 const (
-	Deployment ResourceType = "Deployment"
-	CronJob    ResourceType = "CronJob"
-	Job        ResourceType = "Job"
-	Pod        ResourceType = "Pod"
+	Deployment       ResourceType = "Deployment"
+	CronJob          ResourceType = "CronJob"
+	Job              ResourceType = "Job"
+	Pod              ResourceType = "Pod"
+	ArgoWorkflow     ResourceType = "Workflow"
+	ArgoCronWorkflow ResourceType = "CronWorkflow"
 )
 
 func RunPlugin(configFlags *ConfigFlags, args []string) error {
@@ -97,6 +99,10 @@ func getResourceType(s string) (ResourceType, error) {
 		return Job, nil
 	case "pods", "pod", "po":
 		return Pod, nil
+	case "workflows", "workflow", "wf":
+		return ArgoWorkflow, nil
+	case "cronworkflows", "cronworkflow", "cwf", "cronwf":
+		return ArgoCronWorkflow, nil
 	default:
 		return "", fmt.Errorf(`resource type "%s" is not supported`, s)
 	}
