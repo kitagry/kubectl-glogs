@@ -108,6 +108,8 @@ func extractNamespace(configFlags *genericclioptions.ConfigFlags, config clientc
 }
 
 func (g *GoogleCloudLogger) Gather(ctx context.Context, entryChan chan<- *logging.Entry) error {
+	defer close(entryChan)
+
 	client, err := logadmin.NewClient(ctx, fmt.Sprintf("projects/%s", g.config.ProjectID))
 	if err != nil {
 		return err
@@ -131,7 +133,6 @@ func (g *GoogleCloudLogger) Gather(ctx context.Context, entryChan chan<- *loggin
 		entryChan <- entry
 	}
 
-	close(entryChan)
 	return nil
 }
 
