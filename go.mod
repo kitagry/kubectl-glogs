@@ -6,6 +6,7 @@ require (
 	cloud.google.com/go/logging v1.5.0
 	github.com/fatih/color v1.7.0
 	github.com/spf13/cobra v0.0.4
+	github.com/spf13/pflag v1.0.3
 	github.com/spf13/viper v1.4.0
 	google.golang.org/api v0.84.0
 	k8s.io/apimachinery v0.0.0-20190313205120-d7deff9243b1
@@ -19,7 +20,7 @@ require (
 	github.com/PuerkitoBio/purell v1.0.0 // indirect
 	github.com/PuerkitoBio/urlesc v0.0.0-20160726150825-5bd2802263f2 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
-	github.com/emicklei/go-restful v0.0.0-20170410110728-ff4f55a20633 // indirect
+	github.com/emicklei/go-restful v2.16.0+incompatible // indirect
 	github.com/evanphx/json-patch v4.5.0+incompatible // indirect
 	github.com/fsnotify/fsnotify v1.4.7 // indirect
 	github.com/ghodss/yaml v1.0.0 // indirect
@@ -56,7 +57,6 @@ require (
 	github.com/spf13/afero v1.2.2 // indirect
 	github.com/spf13/cast v1.3.0 // indirect
 	github.com/spf13/jwalterweatherman v1.0.0 // indirect
-	github.com/spf13/pflag v1.0.3 // indirect
 	go.opencensus.io v0.23.0 // indirect
 	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9 // indirect
 	golang.org/x/net v0.0.0-20220607020251-c690dde0001d // indirect
