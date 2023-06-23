@@ -27,6 +27,9 @@ kubectl glogs
 kubectl glogs cronjob CRONJOB_NAME
 kubectl glogs deploy DEPLOYMENT_NAME
 kubectl glogs jobs JOB_NAME
+
+# Open browser
+kubectl glogs --web cronjob CRONJOB_NAME
 ```
 
 ## TODO

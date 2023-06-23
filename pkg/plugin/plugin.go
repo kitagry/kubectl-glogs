@@ -5,8 +5,12 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"net/url"
 	"os"
+	"os/exec"
+	"runtime"
 	"strings"
+	"time"
 
 	"cloud.google.com/go/logging"
 	"github.com/fatih/color"
@@ -34,6 +38,35 @@ func RunPlugin(configFlags *ConfigFlags, args []string) error {
 	logger, err := NewGoogleCloudLogger(configFlags, args)
 	if err != nil {
 		return err
+	}
+
+	if configFlags.Web {
+		query, err := logger.BuildQuery()
+		if err != nil {
+			return fmt.Errorf("failed to build query: %w", err)
+		}
+		cloudLoggingURL, err := url.JoinPath("https://console.cloud.google.com", "logs", fmt.Sprintf("query;query=%s;cursorTimestamp=%s", url.PathEscape(query), time.Now().Format(time.RFC3339Nano)))
+		if err != nil {
+			return fmt.Errorf("failed to joinpath: %w", err)
+		}
+		cloudLoggingURL += "?" + url.Values{"project": []string{logger.config.ProjectID}}.Encode()
+		var cmd *exec.Cmd
+		switch runtime.GOOS {
+		case "linux":
+			cmd = exec.Command("xdg-open", cloudLoggingURL)
+		case "windows":
+			cmd = exec.Command("rundll32", "url.dll,FileProtocolHandler", cloudLoggingURL)
+		case "darwin":
+			cmd = exec.Command("open", cloudLoggingURL)
+		default:
+			return fmt.Errorf("unsupported platform: %s", runtime.GOOS)
+		}
+
+		err = cmd.Run()
+		if err != nil {
+			return fmt.Errorf("failed to command `%s`: %w", cmd.String(), err)
+		}
+		return nil
 	}
 
 	ch := make(chan *logging.Entry, 100)

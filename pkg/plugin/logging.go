@@ -116,7 +116,7 @@ func (g *GoogleCloudLogger) Gather(ctx context.Context, entryChan chan<- *loggin
 	}
 	defer client.Close()
 
-	filter, err := g.buildFilter()
+	filter, err := g.BuildQuery()
 	if err != nil {
 		return err
 	}
@@ -136,7 +136,7 @@ func (g *GoogleCloudLogger) Gather(ctx context.Context, entryChan chan<- *loggin
 	return nil
 }
 
-func (g *GoogleCloudLogger) buildFilter() (string, error) {
+func (g *GoogleCloudLogger) BuildQuery() (string, error) {
 	defaultTimestamp := time.Now().Add(-g.configFlags.Duration)
 	filter := fmt.Sprintf(`resource.type = "k8s_container"
 resource.labels.project_id="%s"
