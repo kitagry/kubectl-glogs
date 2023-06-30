@@ -36,7 +36,10 @@ func RootCmd() *cobra.Command {
   kubectl glogs --duration 2h
 
   # Return logs with filter
-  kubectl glogs --filter 'severity = "ERROR"'`,
+  kubectl glogs --filter 'severity = "ERROR"'
+
+  # Open browser
+  kubectl glogs --web`,
 		SilenceErrors: true,
 		SilenceUsage:  true,
 		PreRun: func(cmd *cobra.Command, args []string) {

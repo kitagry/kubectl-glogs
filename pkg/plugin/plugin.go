@@ -41,7 +41,7 @@ func RunPlugin(configFlags *ConfigFlags, args []string) error {
 	}
 
 	if configFlags.Web {
-		query, err := logger.BuildQuery()
+		query, err := logger.BuildQuery(true)
 		if err != nil {
 			return fmt.Errorf("failed to build query: %w", err)
 		}
